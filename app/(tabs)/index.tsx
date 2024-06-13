@@ -5,15 +5,22 @@ import { collection, onSnapshot } from "firebase/firestore";
 import * as Speech from 'expo-speech';
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
-
+import { Audio } from 'expo-av';
 const BACKGROUND_FETCH_TASK = 'background-fetch';
-let lastProcessedDocId:any = null; // Track the last processed document ID
+let lastProcessedDocId: any = null; // Track the last processed document ID
 
 // Define the background fetch task
 TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   console.log(`Background fetch executed at ${new Date().toLocaleTimeString()}`);
-
+  
   try {
+    const soundObject = new Audio.Sound();
+    await soundObject.loadAsync({
+      uri : 'https://file-examples.com/storage/fe3cb26995666504a8d6180/2017/11/file_example_MP3_700KB.mp3'
+    });
+    await soundObject.setIsLoopingAsync(true);
+    await soundObject.playAsync();
+
     onSnapshot(collection(db, 'texts'), (snapshot) => {
       snapshot.forEach((doc) => {
         if (doc.id !== lastProcessedDocId) { // Check if this is a new document
@@ -21,11 +28,10 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
           Speech.speak(textData, { language: 'en', rate: 1.0 });
           lastProcessedDocId = doc.id;
         }
-      })
-    })  
+      });
+    });
 
-    // Stop the background fetch task after processing
-    await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+    await soundObject.unloadAsync();
 
     return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (error) {
@@ -34,13 +40,30 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   }
 });
 
+
 export default function HomeScreen() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [status, setStatus] = useState<BackgroundFetch.BackgroundFetchStatus | null>(null);
-  const [data, setData] = useState('');
+  const [data, setData] = useState([]);
+
+
+  const playSilentAudio = async () => {
+    const soundObject = new Audio.Sound();
+    try {
+      await soundObject.loadAsync({
+        uri : 'https://file-examples.com/storage/fe3cb26995666504a8d6180/2017/11/file_example_MP3_700KB.mp3'
+      });
+      await soundObject.setIsLoopingAsync(true);
+      await soundObject.playAsync();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   useEffect(() => {
-    checkStatusAsync();
+    setData([]);
+    playSilentAudio()
+    checkStatusAsync();    
     fetchFirestoreData();
 
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -60,15 +83,18 @@ export default function HomeScreen() {
   }, []);
 
   const fetchFirestoreData = async () => {
+    let temp: any = [];
+    setData([]);
     onSnapshot(collection(db, 'texts'), (snapshot) => {
       snapshot.forEach((doc) => {
-        if (doc.id !== lastProcessedDocId) { // Check if this is a new document
+        if (doc.id !== lastProcessedDocId) {
           const textData = doc.data().text;
-          setData(textData);
+          temp.push(textData);
           Speech.speak(textData, { language: 'en', rate: 1.0 });
-          lastProcessedDocId = doc.id; // Update the last processed document ID
+          lastProcessedDocId = doc.id;
         }
       });
+      setData(temp);
     });
   };
 
@@ -103,14 +129,28 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.textContainer}>
-        <Text>Background fetch status: <Text style={styles.boldText}>{status && BackgroundFetch.BackgroundFetchStatus[status]}</Text></Text>
-        <Text>Background fetch task name: <Text style={styles.boldText}>{isRegistered ? BACKGROUND_FETCH_TASK : 'Not registered yet!'}</Text></Text>
+        <Text style={{
+          color: "skyblue"
+        }}>Background fetch status: <Text style={styles.boldText}>{status && BackgroundFetch.BackgroundFetchStatus[status]}</Text></Text>
+        <Text style={{
+          color: "skyblue"
+        }}>Background fetch task name: <Text style={styles.boldText}>{isRegistered ? BACKGROUND_FETCH_TASK : 'Not registered yet!'}</Text></Text>
       </View>
       <Button
         title={isRegistered ? 'Unregister BackgroundFetch task' : 'Register BackgroundFetch task'}
         onPress={toggleFetchTask}
       />
-      <Text style={styles.text}>Fetched Data: {data}</Text>
+      <Text style={styles.text}>Fetched Data:</Text>
+      {
+        data &&
+        data?.map((text, index) => {
+          return (
+            <Text style={{
+              color: "red"
+            }} key={index + 1}>{index + 1}: {text}</Text>
+          )
+        })}
+
     </View>
   );
 }
