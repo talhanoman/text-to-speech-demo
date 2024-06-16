@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.talhan61.texttospeechdemo",
       "infoPlist": {
-        "UIBackgroundModes": ["location", "fetch", "remote-notification", "audio"]
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
