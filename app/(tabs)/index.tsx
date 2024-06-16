@@ -1,51 +1,45 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, AppState, View, Text, Button } from 'react-native';
-import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, Text, Button, AppState } from 'react-native';
+import * as Speech from 'expo-speech';
 
-export default function HomeScreen() {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-
+export default function App() {
   useEffect(() => {
-    // Function to play the audio
-    const playAudio = async () => {
-      const { sound: soundObject } = await Audio.Sound.createAsync(
-        { uri: 'https://file-examples.com/storage/fe3cb26995666504a8d6180/2017/11/file_example_MP3_700KB.mp3' },
-        { shouldPlay: true, isLooping: true }
-      );
-      setSound(soundObject);
-      await soundObject.playAsync();
-    };
-
-    // Configure audio for background playback
-    const configureAudio = async () => {
-      await Audio.setAudioModeAsync({
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
-    };
-
-    configureAudio();
-    playAudio();
-
-    const subscription = AppState.addEventListener('change', nextAppState => {
-      console.log(`App state changed to ${nextAppState}`);
-    });
-
-    return () => {
-      subscription.remove();
-      if (sound) {
-        sound.unloadAsync();
+    // Function to speak text
+    const speakText = async (text: string) => {
+      try {
+        await Speech.speak(text, { language: 'en', rate: 1.0 });
+      } catch (error) {
+        console.error('Failed to speak:', error);
       }
+    };
+
+    // Speak text on component mount
+    speakText('Hello, this is a sample text to be converted to speech.');
+
+    // Handle app state changes
+    const handleAppStateChange = async (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        // App is in the foreground, speak the text again
+        speakText('Hello, this is a sample text to be converted to speech.');
+      } else if (nextAppState === 'background') {
+        // App is in the background, configure audio session for background playback
+        await Speech.speak('background task is running', { language: 'en', rate: 1.0 });
+      }
+    };
+
+    // Subscribe to app state changes
+    (AppState as any).addEventListener('change', handleAppStateChange);
+
+    // Unsubscribe from app state changes when component unmounts
+    return () => {
+      (AppState as any).removeEventListener('change', handleAppStateChange);
     };
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Audio should be playing in the background and foreground.</Text>
+      <Text style={styles.text}>Press the button to hear the text!</Text>
+      <Button title="Speak Text" onPress={() => Speech.speak('Hello, world!')} />
     </View>
   );
 }
@@ -57,8 +51,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   text: {
-    marginTop: 20,
     fontSize: 18,
-    textAlign: 'center',
+    marginBottom: 20,
   },
 });
