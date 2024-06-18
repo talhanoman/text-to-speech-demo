@@ -31,7 +31,7 @@ async function fetchFirestoreData() {
   
       if (sentence !== '') { 
         try {
-          const response = await axios.post('http://192.168.18.57:3000/convert', { text: sentence });
+          const response = await axios.post('http://13.201.68.104:3000/convert', { text: sentence });
           const audioUrl = response.data.audioUrl;
           await playAudio(audioUrl); 
         } catch (error) {
@@ -120,7 +120,7 @@ export default function HomeScreen() {
   
       if (sentence !== '') { // Only process audio if there's new text
         try {
-          const response = await axios.post('http://192.168.18.57:3000/convert', { text: sentence });
+          const response = await axios.post('http://13.201.68.104:3000/convert', { text: sentence });
           const audioUrl = response.data.audioUrl;
           await playAudio(audioUrl); // Ensure playAudio waits for conversion
         } catch (error) {

@@ -10,7 +10,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
 const port = 3000;
-const SERVER_URL = `http://192.168.18.57:${port}`;
+const SERVER_URL = `http://192.168.1.4:${port}`;
 
 // Configure AWS Polly with your credentials
 AWS.config.update({
@@ -60,6 +60,10 @@ app.post('/convert', (req, res) => {
             }
         });
     });
+});
+
+app.get('/', (req, res) => {
+    res.send('Hello World!');
 });
 
 
